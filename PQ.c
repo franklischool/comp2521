@@ -6,16 +6,18 @@
 #include <assert.h>
 
 #define STATIC_LENGTH 10000
+#define REALLOC_SIZE 1000
 #define UNUSED -1
 struct PQRep {
 	// make the memory dynamic later on just use a static array for now
-	ItemPQ heap[STATIC_LENGTH]; // index only starts at array[1] instead of array[0], so first one is empty
+	ItemPQ *heap; // index only starts at array[1] instead of array[0], so first one is empty
 	// hashTable uses closed hashing since there are no duplicates with
 	// 	numeric keys which have values that directly translate
 	// 	to the heap's [index] 
-	int hashTable[STATIC_LENGTH];
+	int *hashTable;
 	size_t n;
 	size_t index;
+	size_t currentDynamicSize;
 };
 
 // helper functions
@@ -69,8 +71,11 @@ static size_t propagateDown(PQ pq, size_t index) {
 PQ newPQ() {
 	// must use struct and not PQ since PQ is a pointer which has a size of only 8bytes
 	PQ freshPQ = malloc(sizeof(struct PQRep)); 
+	freshPQ->heap = calloc(REALLOC_SIZE, sizeof(ItemPQ));
+	freshPQ->hashTable = calloc(REALLOC_SIZE, sizeof(int));
+	freshPQ->currentDynamicSize = REALLOC_SIZE;
 	// initialises hashtable
-	for (int i = 0; i < sizeof(freshPQ->hashTable)/sizeof(int); i++)
+	for (int i = 0; i < freshPQ->currentDynamicSize; i++)
 		freshPQ->hashTable[i] = UNUSED;
 	freshPQ->index = 0;
 	return freshPQ;
@@ -84,6 +89,15 @@ int PQEmpty(PQ p) {
 }
 
 void addPQ(PQ pq, ItemPQ element) {
+	// check if need to realloc
+	if (pq->index+1 >= pq->currentDynamicSize) {
+		pq->currentDynamicSize += REALLOC_SIZE;
+		pq->heap = realloc(pq->heap, pq->currentDynamicSize);
+		pq->hashTable = realloc(pq->hashTable, pq->currentDynamicSize);
+		for (int i = pq->index + 1; i < pq->currentDynamicSize; i++)
+			pq->hashTable[i] = UNUSED;
+	}
+
 	// check if key already exists on hash table
 	size_t index = pq->hashTable[element.key];
 	if (index == UNUSED) {
@@ -108,6 +122,7 @@ void addPQ(PQ pq, ItemPQ element) {
 	}
 }
 
+// dont bother deallocing memory 
 ItemPQ dequeuePQ(PQ pq) {
 	assert(pq->index != 0);
 	ItemPQ throwAway = pq->heap[1];
@@ -157,6 +172,7 @@ void showPQ(PQ pq) {
 }
 
 void freePQ(PQ pq) {
-	// static arrays nothing to free for now
+	free(pq->heap);
+	free(pq->hashTable);
 	free(pq);
 }

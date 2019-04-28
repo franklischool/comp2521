@@ -19,12 +19,18 @@ static int noNodes(AdjList list) {
 	return num;
 }
 
-static bool checkIfPathXHasVertexV(ShortestPaths* paths, PredNode* x, Vertex v) {
-	for (PredNode* node = x; node != NULL;) {
-		if (node->v == v) return true;
-		node = paths->pred[node->v];
-	}
-	return false;
+// recurse through all possible shortest paths given a starting point
+// essentially counting number of leaves in a non-binary tree except with the leaves
+// 	all being the same node i.e. being src
+static int findPaths(int output[], ShortestPaths* paths, PredNode* node, Vertex src) {
+	if (node == NULL) return 0;
+
+	int downPaths = findPaths(output, paths, paths->pred[node->v], src);
+	int sidePaths = findPaths(output, paths, node->next, src);
+
+	output[node->v] += downPaths;
+	
+	return sidePaths + downPaths + (node->v == src ? 1 : 0);
 }
 // helper functions
 
@@ -86,32 +92,25 @@ NodeValues closenessCentrality(Graph g) {
 NodeValues betweennessCentrality(Graph g) {
 	NodeValues NV = newNV(numVerticies(g));
 
-	// this method is less straight forward but significantly more optimised
-	// in either case this function is extremely expensive and there are alot of ways to minimise the cost
-	//	but it can get really messy
-	ShortestPaths paths[NV.noNodes];
-	for (Vertex i = 0; i < NV.noNodes; i++) paths[i] = dijkstra(g, i);
+	// go through all paths check for in betweens
+	for (Vertex src = 0; src < NV.noNodes; src++) {
+		ShortestPaths path = dijkstra(g, src);
+		for (Vertex dest = 0; dest < NV.noNodes; dest++) {
+			if (dest == src) continue;
+			
+			// initialise arrays
+			int numPaths = 0;
+			int numPathsWithInBetweenNode[NV.noNodes];
+			for (int i = 0; i < NV.noNodes; i++) numPathsWithInBetweenNode[i] = 0;
 
-	for (Vertex v = 0; v < NV.noNodes; v++) {
-		for (Vertex src = 0; src < NV.noNodes; src++) {
-			if (src == v) continue;
-			for (Vertex dest = 0; dest < NV.noNodes; dest++) {
-				if (dest == v || dest == src || paths[src].pred[dest] == NULL) continue;
-				int noSPS = 0;
-				int noSPS_ThroughV = 0;
-				for (PredNode* node = paths[src].pred[dest]; node != NULL; node = node->next) {
-					if (checkIfPathXHasVertexV(&(paths[src]), node, v))
-						noSPS_ThroughV++;
-					noSPS++;
-				}
-				NV.values[v] += (double)noSPS_ThroughV / (double)noSPS; 
-			}
+			numPaths = findPaths(numPathsWithInBetweenNode, &path, path.pred[dest], src);
+
+			for (int i = 0; i < NV.noNodes; i++)
+				NV.values[i] += numPaths == 0 ? 0 : (double)numPathsWithInBetweenNode[i] / (double)numPaths;
+
 		}
-
 	}
-
-	for (Vertex i = 0; i < NV.noNodes; i++) freeShortestPaths(paths[i]);
-
+	
 	return NV;
 }
 

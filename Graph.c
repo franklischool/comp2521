@@ -17,7 +17,11 @@ struct GraphRep {
 	//
 	// Helper members
 	//
+
+	// this avoids the awkwardness of users having to free this list
+	// 	however users need to manually make copies of it instead
 	AdjList* helperList; //for inbound connections
+
 };
 
 // costly method
@@ -39,6 +43,7 @@ static int numVertices(Graph g) {
 
 Graph newGraph(int noNodes) {
 	assert(noNodes > 0); //cannot have a max size of 0
+	// couldn't think of a better name than freshGraph since newGraph was taken
 	Graph freshGraph = malloc(sizeof(struct GraphRep)); assert(freshGraph != NULL);
 	freshGraph->maxVertices = noNodes;
 	freshGraph->list = calloc(noNodes, sizeof(AdjList)); assert(freshGraph->list != NULL);
