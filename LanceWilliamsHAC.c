@@ -86,14 +86,22 @@ static void showDendrogram(Dendrogram d) {
 // assume direction does not matter
 // assume weight >= 0
 Dendrogram LanceWilliamsHAC(Graph g, int method) {
+  const int SINGLE_LINK = 1;
+  const int COMPLETE_LINK = 2;
   assert(g != NULL);
+  if (method !=  SINGLE_LINK && method != COMPLETE_LINK)
+    fprintf(stderr, "Incorrect method given by user for LanceWilliamsHAC\n");
+
   const int numVertices = numVerticies(g);
 
   // initialise distanceMatrix
   DM dm = newDynamicMatrix(numVertices, INFINITY);
   for (int src = 0; src < numVertices; src++) {
     for (AdjList outList = outIncident(g, src); outList != NULL; outList = outList->next) {
-      set(dm, src, outList->w,
+      // -ve for complete link, but initial distanceFunction is still the same
+      // this really depends on the fact that the graph is fully connected
+      //  (doesnt have to be complete)
+      set(dm, src, outList->w, (method == SINGLE_LINK ? 1 : -1) *
         distanceFunction(
           get(dm, src, outList->w), 
           outList->weight
@@ -120,14 +128,11 @@ Dendrogram LanceWilliamsHAC(Graph g, int method) {
   }
 
   // initialise clusterArray
+  // and initialise hashtable for searching for vertices within clusters within clusterArray
   Dendrogram clusterArray[numVertices];
-  for (int i = 0; i < numVertices; i++) {
-    clusterArray[i] = newDendrogram(i);
-  }
-
-  // initialise hashtable for searching for vertices within clusters within clusterArray
   int hashTable[numVertices];
   for (int i = 0; i < numVertices; i++) {
+    clusterArray[i] = newDendrogram(i);
     hashTable[i] = i;
   }
 
@@ -166,7 +171,6 @@ Dendrogram LanceWilliamsHAC(Graph g, int method) {
   } else if (method == 2) {
 
   } else {
-    fprintf(stderr, "Incorrect method given by user for LanceWilliamsHAC\n");
     return NULL;
   }
 
