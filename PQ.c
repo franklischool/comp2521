@@ -52,6 +52,7 @@ static size_t findSmallestValidChild(PQ pq, size_t index) {
 	if (leftChild && !rightChild) return leftChild;
 	if (leftChild && rightChild)
 		return pq->heap[leftChild].value < pq->heap[rightChild].value ? leftChild : rightChild;
+	return false;
 }
 
 static size_t propagateDown(PQ pq, size_t index) {
