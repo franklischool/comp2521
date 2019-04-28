@@ -1,12 +1,11 @@
 // PQ ADT interface for Ass2 (COMP2521)
 #include "PQ.h"
-#include "BSTree.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 
-#define STATIC_LENGTH 10000
-#define REALLOC_SIZE 1000
+// #define STATIC_LENGTH 10000
+#define REALLOC_SIZE 10000 // fix this
 #define UNUSED -1
 struct PQRep {
 	// make the memory dynamic later on just use a static array for now
@@ -58,11 +57,9 @@ static size_t findSmallestValidChild(PQ pq, size_t index) {
 static size_t propagateDown(PQ pq, size_t index) {
 	if (index >= pq->index) return index; //at leaf
 	// assuming there isn't a case where parent is larger than children
-	// i.e. bottom layer is always larger than top layer
-	// also assume there are no duplicate values	//BAD ASSUMPTION THIS IS NOT THE CASE
 
 	size_t child = findSmallestValidChild(pq, index);
-	if (child && pq->heap[child].value < pq->heap[index].value) {
+	if (child && pq->heap[child].value <= pq->heap[index].value) {
 		swap(pq, index, child);
 		return propagateDown(pq, child);
 	} else return index;
@@ -83,8 +80,6 @@ PQ newPQ() {
 }
 
 int PQEmpty(PQ p) {
-	// if (p->heap == NULL) return true;
-	// else return false;
 	if (p->index == 0) return true;
 	else return false;
 }
@@ -111,15 +106,6 @@ void addPQ(PQ pq, ItemPQ element) {
 			pq->heap[index].value = element.value;
 			pq->hashTable[element.key] = propagateUp(pq, index);
 		}
-		// commenting out the other scenario, this however might go against
-		// the implementation specifications
-		// this is because dijkstra wants only the lowest weights
-
-		// } else if (element.value > pq->heap[index].value) { // propagate down only
-		// 	pq->heap[index].value = element.value;
-		// 	propagateDown(pq, index);
-		// }
-		// if the value is the same do nothing
 	}
 }
 
@@ -130,8 +116,6 @@ ItemPQ dequeuePQ(PQ pq) {
 	pq->heap[1] = pq->heap[pq->index];
 	pq->index--;
 
-	// there is a good chance that there is a bug here, but then again maybe not
-	// in any case the bottom is very buggy hackish code
 	pq->hashTable[throwAway.key] = UNUSED;
 	if (pq->index != 0) pq->hashTable[pq->heap[1].key] = 1;
 	propagateDown(pq, 1);
